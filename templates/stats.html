@@ -4,6 +4,7 @@
     <title>Statistics</title>
   </head>
   <body>
+    <h2>Dataset: {{filename}}</h2>
     <h3>Sample data:</h3>
     {{df|safe}}
     <small><i>Showing top 10 rows from {{filename}}</i></small>
@@ -14,7 +15,6 @@
     <br />
     <br />
     <h3>Dataset statistics:</h3>
-    <p>no of row={{no_of_rows}}</p>
     {{dataset_stats|safe}}
     <br /><br />
     <h3>Class statistics:</h3>

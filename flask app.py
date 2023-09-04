@@ -14,7 +14,7 @@ def index():
 def upload():
     class_stats = dataset_stats = ""
     file = request.files["dataset"]
-    df = pd.read_csv(file.filename or "bmi.csv")
+    df = pd.read_csv(file.filename)
     dataset_stats += f"Total no of rows = {len(df)} <br/>"
     dataset_stats += f"Total no of numeric features = {len(df.select_dtypes(include=['number']).columns) } <br/>"
     dataset_stats += f"Total no of categorical features = {len(df.select_dtypes(exclude=['number']).columns)-1}"
@@ -35,7 +35,7 @@ def upload():
         class_stats += f"For <b>{class_label}</b>:"
         class_stats += pd.concat(
             [stats1_df, stats2_df],
-        ).to_html()
+        ).to_html(justify="left")
         class_stats += "<br/>"
 
     return render_template(
