@@ -19,5 +19,11 @@
     <br /><br />
     <h3>Class statistics:</h3>
     {{class_stats|safe}}
+    <br /><br />
+    {% if plot_data %}
+        <img src="data:image/png;base64,{{ plot_data }}" alt="Multivariate Distribution" />
+    {% endif %}
+    <h2>Predicted class:</h2>
+    {{predicted_class|safe}}
   </body>
 </html>
