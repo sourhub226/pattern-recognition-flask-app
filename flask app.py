@@ -1,10 +1,11 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 import pandas as pd
 from scipy.stats import multivariate_normal
-import matplotlib.pyplot as plt
+
+# import matplotlib.pyplot as plt
 import numpy as np
 import pickle
-from io import BytesIO, StringIO
+from io import BytesIO
 
 
 app = Flask(__name__)
@@ -46,7 +47,7 @@ def stats():
             "description": classviz_df.describe().to_html(),
             "kurtosis": classviz_df.kurt().to_frame(name="kurtosis").T.to_html(),
             "skewness": classviz_df.skew().to_frame(name="skewness").T.to_html(),
-            "covariance": classviz_df.cov().to_html(),
+            "covariance": classviz_df.cov(ddof=0).to_html(),
         }
 
         # display graph using matplotlib
@@ -74,7 +75,6 @@ def stats():
         ),
         dataset_stats=dataset_stats,
         class_stats=class_stats,
-        # predicted_class=predicted_class,
         # plot_data=plot_data,
     )
 
@@ -88,7 +88,7 @@ def predict():
     df = pickle.loads(session.get("dataset"))
     if request.method == "POST":
         data_point = request.form["data_point"]
-        data_point = np.array([[int(x) for x in data_point.split(",")]])
+        data_point = np.array([[float(x) for x in data_point.split(",")]])
         print(data_point)
 
     unique_classes = df["Class"].unique()

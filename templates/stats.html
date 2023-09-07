@@ -8,16 +8,28 @@
       href="{{ url_for('static', filename='global styles.css') }}"
     />
     <style>
-      .class-frames {
+      .table-frames {
         display: flex;
         gap: 30px;
-        /* flex-wrap: wrap; */
+        flex-wrap: wrap;
+      }
+      .header {
+        display: flex;
+        flex-grow: 0;
+      }
+
+      button {
+        align-self: center;
+        margin-left: auto;
       }
     </style>
   </head>
   <body>
-    <h2>Dataset: {{filename}}</h2>
-    <div class="class-frames">
+    <div class="header">
+      <h2>Dataset: {{filename}}</h2>
+      <button onclick="window.location.href='/predict'">Predict</button>
+    </div>
+    <div class="table-frames">
       <div>
         <h3>Sample data:</h3>
         {{df_sample|safe}}
@@ -42,7 +54,7 @@
     </div>
     <br />
     <h3>Class statistics:</h3>
-    <div class="class-frames">
+    <div class="table-frames">
       {% for class_label in class_stats %}
       <div>
         <p>For <b>{{class_label}}:</b></p>
@@ -59,10 +71,9 @@
       {% endfor %}
     </div>
 
-    <br /><br />
+    <br />
     <!-- {% if plot_data %}
         <img src="data:image/png;base64,{{ plot_data }}" alt="Multivariate Distribution" />
     {% endif %} -->
-    <a href="/predict">Predict</a>
   </body>
 </html>
