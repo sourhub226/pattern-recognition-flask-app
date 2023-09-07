@@ -1,13 +1,14 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, session
 import pandas as pd
 from scipy.stats import multivariate_normal
 import matplotlib.pyplot as plt
 import numpy as np
-import io
-import base64
+import pickle
+from io import BytesIO, StringIO
 
 
 app = Flask(__name__)
+app.secret_key = "pr1"
 
 
 @app.route("/")
@@ -15,42 +16,38 @@ def index():
     return render_template("home.html")
 
 
-@app.route("/upload", methods=["POST"])
-def upload():
-    class_stats = dataset_stats = ""
-    max_probab = -1
-    predicted_class = None
-    file = request.files["dataset"]
-    df = pd.read_csv(file.filename)
-    dataset_stats += f"Total no of rows = {len(df)} <br/>"
-    dataset_stats += f"Total no of numeric features = {len(df.select_dtypes(include=['number']).columns) } <br/>"
-    dataset_stats += f"Total no of categorical features = {len(df.select_dtypes(exclude=['number']).columns)-1}"
+def store_in_session(key, value):
+    if key in session:
+        session.pop(key)
+    session[key] = value
+
+
+@app.route("/stats", methods=["GET", "POST"])
+def stats():
+    class_stats = {}
+    if request.method == "POST":
+        file = request.files["dataset"]
+        df = pd.read_csv(BytesIO(file.read()))
+        store_in_session("dataset", pickle.dumps(df))
+
+    dataset_stats = {
+        "no_rows": len(df),
+        "no_num_features": len(df.select_dtypes(include=["number"]).columns),
+    }
+    dataset_stats["no_cat_features"] = (
+        len(df.select_dtypes(exclude=["number"]).columns) - 1
+    )
 
     unique_classes = df["Class"].unique()
 
-    for iteration, class_label in enumerate(unique_classes):
-        class_df = df[df["Class"] == class_label]
-        class_df = class_df[["Height", "Weight"]]
-        stats1_df = class_df.describe()
-        stats2_df = pd.DataFrame(
-            {
-                "Height": [class_df["Height"].kurt(), class_df["Height"].skew()],
-                "Weight": [class_df["Weight"].kurt(), class_df["Weight"].skew()],
-            },
-            index=["kurtosis", "skewness"],
-        )
-        class_mean = class_df.mean()
-        class_cov = class_df.cov()
-
-        mvnd = multivariate_normal(mean=class_mean, cov=class_cov)
-        # print(mvnd)
-        probab = mvnd.pdf([194, 108])
-        print(class_label)
-        print(probab)
-        if probab > max_probab:
-            max_probab = probab
-            predicted_class = class_label
-        print(f"Predicted class = {predicted_class}")
+    for class_label in unique_classes:
+        classviz_df = df[df["Class"] == class_label].select_dtypes(include=["number"])
+        class_stats[class_label] = {
+            "description": classviz_df.describe().to_html(),
+            "kurtosis": classviz_df.kurt().to_frame(name="kurtosis").T.to_html(),
+            "skewness": classviz_df.skew().to_frame(name="skewness").T.to_html(),
+            "covariance": classviz_df.cov().to_html(),
+        }
 
         # display graph using matplotlib
         # fig, axs = plt.subplots(2, 2, figsize=(10, 10))
@@ -68,26 +65,53 @@ def upload():
         # img_buffer.seek(0)
         # plot_data = base64.b64encode(img_buffer.read()).decode("utf-8")
 
-        class_stats += f"For <b>{class_label}</b>:"
-        class_stats += pd.concat(
-            [stats1_df, stats2_df],
-        ).to_html(justify="left")
-        # class_stats += pd.DataFrame(class_mean, columns=["Mean"]).to_html()
-        class_stats += class_cov.to_html()
-        class_stats += str(probab)
-        class_stats += "<br/>"
-
     return render_template(
         "stats.html",
         filename=file.filename,
-        df=df.head(10).to_html(
+        df_sample=df.head(10).to_html(
             index=False,
             justify="left",
         ),
         dataset_stats=dataset_stats,
         class_stats=class_stats,
-        predicted_class=predicted_class,
+        # predicted_class=predicted_class,
         # plot_data=plot_data,
+    )
+
+
+@app.route("/predict", methods=["GET", "POST"])
+def predict():
+    pdf = {}
+    max_probability = -1
+    predicted_class = None
+    data_point = None
+    df = pickle.loads(session.get("dataset"))
+    if request.method == "POST":
+        data_point = request.form["data_point"]
+        data_point = np.array([[int(x) for x in data_point.split(",")]])
+        print(data_point)
+
+    unique_classes = df["Class"].unique()
+    for class_label in unique_classes:
+        classviz_df = df[df["Class"] == class_label].select_dtypes(include=["number"])
+
+        probability = multivariate_normal(
+            mean=classviz_df.mean(), cov=classviz_df.cov()
+        ).pdf(data_point)
+        pdf[class_label] = {"probability": probability}
+        print(class_label)
+        print(probability)
+        if probability > max_probability:
+            max_probability = probability
+            predicted_class = class_label
+        print(f"Predicted class = {predicted_class}")
+
+    return render_template(
+        "predict.html",
+        df=df,
+        predicted_class=predicted_class,
+        feature_cols=df.select_dtypes(include=["number"]).columns.tolist(),
+        pdf=pdf,
     )
 
 

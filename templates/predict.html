@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Predict</title>
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="{{ url_for('static', filename='global styles.css') }}"
+    />
+  </head>
+  <body>
+    <form method="post" action="/predict">
+      <h3>Input data point {{feature_cols}} for prediction:</h3>
+
+      <input type="text" name="data_point" required />
+      <button>Predict</button>
+    </form>
+    {% if predicted_class %}
+    <h3>Results:</h3>
+    <table border="1">
+      <tr>
+        <th>Class</th>
+        <th>Multivariate pdf</th>
+      </tr>
+      {% for class_label in pdf %}
+      <tr>
+        <td>{{class_label}}</td>
+        <td>{{pdf[class_label]["probability"] | safe}}</td>
+      </tr>
+
+      {% endfor %}
+    </table>
+    <br />
+    <p>Predicted class = <b>{{predicted_class}}</b></p>
+    {% endif %}
+  </body>
+</html>
