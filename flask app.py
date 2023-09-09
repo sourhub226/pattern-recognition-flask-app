@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session
+from flask_session import Session
 import pandas as pd
 from scipy.stats import multivariate_normal
 
@@ -10,6 +11,8 @@ from io import BytesIO
 
 app = Flask(__name__)
 app.secret_key = "pr1"
+app.config["SESSION_TYPE"] = "filesystem"
+Session(app)
 
 
 @app.route("/")
@@ -17,54 +20,66 @@ def index():
     return render_template("home.html")
 
 
-def store_in_session(key, value):
-    if key in session:
-        session.pop(key)
-    session[key] = value
-
-
 @app.route("/stats", methods=["GET", "POST"])
 def stats():
-    class_stats = {}
+    class_stats = []
     if request.method == "POST":
         file = request.files["dataset"]
         df = pd.read_csv(BytesIO(file.read()))
-        store_in_session("dataset", pickle.dumps(df))
+        session["dataset"] = df
+
+    class_column = df.columns[0]
+    numeric_columns = df.select_dtypes(include=["number"]).columns
+    categorical_columns = df.select_dtypes(exclude=["number"]).columns
 
     dataset_stats = {
         "no_rows": len(df),
-        "no_num_features": len(df.select_dtypes(include=["number"]).columns),
+        "no_num_features": len(numeric_columns),
+        "no_cat_features": len(categorical_columns) - 1,
     }
-    dataset_stats["no_cat_features"] = (
-        len(df.select_dtypes(exclude=["number"]).columns) - 1
-    )
-
-    unique_classes = df["Class"].unique()
+    unique_classes = df[df.columns[0]].unique()
 
     for class_label in unique_classes:
-        classviz_df = df[df["Class"] == class_label].select_dtypes(include=["number"])
-        class_stats[class_label] = {
-            "description": classviz_df.describe().to_html(),
-            "kurtosis": classviz_df.kurt().to_frame(name="kurtosis").T.to_html(),
-            "skewness": classviz_df.skew().to_frame(name="skewness").T.to_html(),
-            "covariance": classviz_df.cov(ddof=0).to_html(),
-        }
+        classwiz_data = df[df[class_column] == class_label]
 
-        # display graph using matplotlib
-        # fig, axs = plt.subplots(2, 2, figsize=(10, 10))
-        # axs = axs.ravel()
-        # x, y = np.meshgrid(
-        #     np.linspace(class_df["Height"].min(), class_df["Height"].max(), 100),
-        #     np.linspace(class_df["Weight"].min(), class_df["Weight"].max(), 100),
-        # )
-        # pos = np.dstack((x, y))
-        # axs[iteration].contourf(x, y, mvnd.pdf(pos), cmap="viridis")
-        # axs[iteration].set_title(f"Class {class_label} Distribution")
-        # img_buffer = io.BytesIO()
-        # plt.tight_layout()
-        # plt.savefig(img_buffer, format="png")
-        # img_buffer.seek(0)
-        # plot_data = base64.b64encode(img_buffer.read()).decode("utf-8")
+        # Calculate mean, std, min, and max for each feature within this class
+        class_stats.extend(
+            [
+                class_label,
+                feature,
+                classwiz_data[feature].mean(),
+                classwiz_data[feature].std(),
+                classwiz_data[feature].min(),
+                classwiz_data[feature].max(),
+                classwiz_data[feature].quantile(0.25),
+                classwiz_data[feature].quantile(0.75),
+                classwiz_data[feature].kurt(),
+                classwiz_data[feature].skew(),
+            ]
+            for feature in numeric_columns
+        )
+    # Create the statistics DataFrame
+    class_stats_df = pd.DataFrame(
+        class_stats,
+        columns=[
+            "Class",
+            "Feature",
+            "Mean",
+            "Std",
+            "Min",
+            "Max",
+            "25%",
+            "75%",
+            "Kurtosis",
+            "Skewness",
+        ],
+    )
+
+    # Pivot the DataFrame to show the statistics for each feature together
+    pivot_df = class_stats_df.pivot(index="Feature", columns="Class").T
+
+    # Display the statistics table
+    # print(pivot_df.T)
 
     return render_template(
         "stats.html",
@@ -74,7 +89,8 @@ def stats():
             justify="left",
         ),
         dataset_stats=dataset_stats,
-        class_stats=class_stats,
+        pivot_df=pivot_df.to_html()
+        # class_stats=class_stats,
         # plot_data=plot_data,
     )
 
@@ -85,15 +101,17 @@ def predict():
     max_probability = -1
     predicted_class = None
     data_point = None
-    df = pickle.loads(session.get("dataset"))
+    df = session["dataset"]
+    unique_classes = df[df.columns[0]].unique()
     if request.method == "POST":
         data_point = request.form["data_point"]
         data_point = np.array([[float(x) for x in data_point.split(",")]])
         print(data_point)
 
-    unique_classes = df["Class"].unique()
     for class_label in unique_classes:
-        classviz_df = df[df["Class"] == class_label].select_dtypes(include=["number"])
+        classviz_df = df[df[df.columns[0]] == class_label].select_dtypes(
+            include=["number"]
+        )
 
         probability = multivariate_normal(
             mean=classviz_df.mean(), cov=classviz_df.cov()
@@ -108,7 +126,6 @@ def predict():
 
     return render_template(
         "predict.html",
-        df=df,
         predicted_class=predicted_class,
         feature_cols=df.select_dtypes(include=["number"]).columns.tolist(),
         pdf=pdf,

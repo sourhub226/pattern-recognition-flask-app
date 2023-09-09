@@ -10,9 +10,10 @@
   </head>
   <body>
     <form method="post" action="/predict">
-      <h3>Input data point {{feature_cols}} for prediction:</h3>
+      <h2>Classification</h2>
+      <p>Input data point: {{feature_cols}}</p>
 
-      <input type="text" name="data_point" required />
+      <input type="text" name="data_point" required style="width: 250px" />
       <button>Predict</button>
     </form>
     {% if predicted_class %}

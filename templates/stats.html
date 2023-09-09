@@ -35,9 +35,6 @@
         {{df_sample|safe}}
         <small><i>Showing top 10 rows from {{filename}}</i></small>
         <br /><br />
-        <b>Note:</b> <br />
-        Height is in kg <br />
-        Weight is in cm
       </div>
       <div>
         <h3>Dataset statistics:</h3>
@@ -54,22 +51,8 @@
     </div>
     <br />
     <h3>Class statistics:</h3>
-    <div class="table-frames">
-      {% for class_label in class_stats %}
-      <div>
-        <p>For <b>{{class_label}}:</b></p>
-        {{class_stats[class_label]["description"] | safe}}
-        <br />
-        {{class_stats[class_label]["kurtosis"] | safe}}
-        <br />
-        {{class_stats[class_label]["skewness"] | safe}}
-        <br />
-        <p><b>covariance</b> matrix:</p>
-        {{class_stats[class_label]["covariance"] | safe}}
-        <br />
-      </div>
-      {% endfor %}
-    </div>
+    {{pivot_df | safe}}
+    
 
     <br />
     <!-- {% if plot_data %}
