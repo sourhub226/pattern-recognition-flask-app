@@ -5,7 +5,6 @@ from scipy.stats import multivariate_normal
 
 # import matplotlib.pyplot as plt
 import numpy as np
-import pickle
 from io import BytesIO
 
 
@@ -23,6 +22,7 @@ def index():
 @app.route("/stats", methods=["GET", "POST"])
 def stats():
     class_stats = []
+    class_stats_other = {}
     if request.method == "POST":
         file = request.files["dataset"]
         df = pd.read_csv(BytesIO(file.read()))
@@ -38,26 +38,35 @@ def stats():
         "no_cat_features": len(categorical_columns) - 1,
     }
     unique_classes = df[df.columns[0]].unique()
+    print(unique_classes)
+    print(unique_classes)
 
     for class_label in unique_classes:
-        classwiz_data = df[df[class_column] == class_label]
+        classviz_df = df[df[class_column] == class_label].select_dtypes(
+            include=["number"]
+        )
 
         # Calculate mean, std, min, and max for each feature within this class
         class_stats.extend(
             [
                 class_label,
                 feature,
-                classwiz_data[feature].mean(),
-                classwiz_data[feature].std(),
-                classwiz_data[feature].min(),
-                classwiz_data[feature].max(),
-                classwiz_data[feature].quantile(0.25),
-                classwiz_data[feature].quantile(0.75),
-                classwiz_data[feature].kurt(),
-                classwiz_data[feature].skew(),
+                classviz_df[feature].mean(),
+                classviz_df[feature].std(),
+                classviz_df[feature].min(),
+                classviz_df[feature].max(),
+                classviz_df[feature].quantile(0.25),
+                classviz_df[feature].quantile(0.75),
+                classviz_df[feature].kurt(),
+                classviz_df[feature].skew(),
             ]
             for feature in numeric_columns
         )
+        class_stats_other[class_label] = {
+            "covariance": classviz_df.cov(ddof=0).to_html(),
+        }
+        # print(class_stats)
+
     # Create the statistics DataFrame
     class_stats_df = pd.DataFrame(
         class_stats,
@@ -89,7 +98,9 @@ def stats():
             justify="left",
         ),
         dataset_stats=dataset_stats,
-        pivot_df=pivot_df.to_html()
+        pivot_df=pivot_df.to_html(),
+        unique_classes=unique_classes,
+        class_stats_other=class_stats_other
         # class_stats=class_stats,
         # plot_data=plot_data,
     )

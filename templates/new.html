@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Statistics</title>
+    <style>
+      table {
+        border-collapse: collapse;
+        margin-bottom: 20px;
+      }
+      th,
+      td {
+        border: 1px solid black;
+        padding: 8px;
+        text-align: left;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Statistics</h1>
+
+    <!-- Display class names and covariance matrices -->
+    {% for class_name in unique_classes %}
+    <h2>{{ class_name }}</h2>
+    <p>Covariance Matrix:</p>
+    <table>
+      <tr>
+        <th></th>
+        {% for col in cov_matrices[class_name].columns %}
+        <th>{{ col }}</th>
+        {% endfor %}
+      </tr>
+      {% for index, row in cov_matrices[class_name].iterrows() %}
+      <tr>
+        <td><strong>{{ index }}</strong></td>
+        {% for val in row %}
+        <td>{{ val }}</td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </table>
+    {% endfor %}
+  </body>
+</html>

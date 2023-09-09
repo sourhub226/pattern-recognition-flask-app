@@ -17,17 +17,19 @@
         display: flex;
         flex-grow: 0;
       }
-
-      button {
-        align-self: center;
-        margin-left: auto;
-      }
     </style>
   </head>
   <body>
     <div class="header">
       <h2>Dataset: {{filename}}</h2>
-      <button onclick="window.location.href='/predict'">Predict</button>
+      <div style="margin-left: auto; align-self: center">
+        <button onclick="window.location.href='/box_plot'">
+          View box plot
+        </button>
+        <button onclick="window.location.href='/predict'">
+          Predict the class
+        </button>
+      </div>
     </div>
     <div class="table-frames">
       <div>
@@ -50,9 +52,23 @@
       </div>
     </div>
     <br />
-    <h3>Class statistics:</h3>
-    {{pivot_df | safe}}
-    
+    <div class="table-frames">
+      <div>
+        <h3>Class statistics:</h3>
+        {{pivot_df | safe}}
+      </div>
+      <br />
+      <div>
+        <p style="margin-top: 55px"><b>Covariance</b> matrices:</p>
+        {% for class_label in class_stats_other %}
+        <div>
+          <p>For <b>{{class_label}}:</b></p>
+          {{class_stats_other[class_label]["covariance"] | safe}}
+          <br />
+        </div>
+        {% endfor %}
+      </div>
+    </div>
 
     <br />
     <!-- {% if plot_data %}
