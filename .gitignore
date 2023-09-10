@@ -1,2 +1,4 @@
 try.py
 flask_session/
+templates/try.html
+.vscode

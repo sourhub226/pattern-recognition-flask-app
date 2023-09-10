@@ -1,5 +1,12 @@
 body {
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  padding: 0;
+  color: #383838;
+}
+
+.container {
+  padding: 0 20px;
 }
 
 table {
@@ -25,7 +32,6 @@ p {
 }
 
 button {
-  /* display: inline-block; */
   padding: 5px;
   background-color: #f2f2f2;
   border-radius: 5px;
@@ -37,4 +43,20 @@ input[type="text"] {
   padding: 5px;
   border-radius: 5px;
   border: 1px solid #aaaaaa;
+}
+
+nav {
+  display: flex;
+  justify-content: flex-end;
+  background-color: #f6f6f6;
+}
+
+nav > * {
+  margin: 20px;
+}
+
+a {
+  text-decoration: none;
+  color: #666;
+  font-weight: 500;
 }

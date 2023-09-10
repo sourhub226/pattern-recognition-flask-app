@@ -1,38 +1,27 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <title>Predict</title>
-    <link
-      rel="stylesheet"
-      type="text/css"
-      href="{{ url_for('static', filename='global styles.css') }}"
-    />
-  </head>
-  <body>
-    <form method="post" action="/predict">
-      <h2>Classification</h2>
-      <p>Input data point: {{feature_cols}}</p>
+{% extends 'navigation.html' %} {% block content %}
 
-      <input type="text" name="data_point" required style="width: 250px" />
-      <button>Predict</button>
-    </form>
-    {% if predicted_class %}
-    <h3>Results:</h3>
-    <table border="1">
-      <tr>
-        <th>Class</th>
-        <th>Multivariate pdf</th>
-      </tr>
-      {% for class_label in pdf %}
-      <tr>
-        <td>{{class_label}}</td>
-        <td>{{pdf[class_label]["probability"] | safe}}</td>
-      </tr>
+<form method="post" action="/predict">
+  <h2>Classification</h2>
+  <p>Input data point: {{feature_cols}}</p>
 
-      {% endfor %}
-    </table>
-    <br />
-    <p>Predicted class = <b>{{predicted_class}}</b></p>
-    {% endif %}
-  </body>
-</html>
+  <input type="text" name="data_point" required style="width: 250px" />
+  <button>Predict class</button>
+</form>
+{% if predicted_class %}
+<h3>Results:</h3>
+<table border="1">
+  <tr>
+    <th>Class</th>
+    <th>Multivariate pdf</th>
+  </tr>
+  {% for class_label in pdf %}
+  <tr>
+    <td>{{class_label}}</td>
+    <td>{{pdf[class_label]["probability"] | safe}}</td>
+  </tr>
+
+  {% endfor %}
+</table>
+<br />
+<p>Predicted class = <b>{{predicted_class}}</b></p>
+{% endif %} {% endblock %}

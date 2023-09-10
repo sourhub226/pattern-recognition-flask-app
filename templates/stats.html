@@ -1,78 +1,50 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <title>Statistics</title>
-    <link
-      rel="stylesheet"
-      type="text/css"
-      href="{{ url_for('static', filename='global styles.css') }}"
-    />
-    <style>
-      .table-frames {
-        display: flex;
-        gap: 30px;
-        flex-wrap: wrap;
-      }
-      .header {
-        display: flex;
-        flex-grow: 0;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="header">
-      <h2>Dataset: {{filename}}</h2>
-      <div style="margin-left: auto; align-self: center">
-        <button onclick="window.location.href='/box_plot'">
-          View box plot
-        </button>
-        <button onclick="window.location.href='/predict'">
-          Predict the class
-        </button>
-      </div>
-    </div>
-    <div class="table-frames">
-      <div>
-        <h3>Sample data:</h3>
-        {{df_sample|safe}}
-        <small><i>Showing top 10 rows from {{filename}}</i></small>
-        <br /><br />
-      </div>
-      <div>
-        <h3>Dataset statistics:</h3>
+{% extends 'navigation.html' %} {% block content %}
+<style>
+  .table-frames {
+    display: flex;
+    gap: 30px;
+    flex-wrap: wrap;
+  }
+</style>
 
-        <p>Total no of rows = {{dataset_stats['no_rows']}}</p>
-        <p>
-          Total no of numerical features = {{dataset_stats['no_num_features']}}
-        </p>
-        <p>
-          Total no of categorical features =
-          {{dataset_stats['no_cat_features']}}
-        </p>
-      </div>
-    </div>
-    <br />
-    <div class="table-frames">
-      <div>
-        <h3>Class statistics:</h3>
-        {{pivot_df | safe}}
-      </div>
+<h2>Dataset: {{filename}}</h2>
+
+<div class="table-frames">
+  <div>
+    <h3>Sample data:</h3>
+    {{df_sample|safe}}
+    <small><i>Showing top 10 rows from {{filename}}</i></small>
+    <br /><br />
+  </div>
+  <div>
+    <h3>Dataset statistics:</h3>
+
+    <p>Total no of rows = {{dataset_stats['no_rows']}}</p>
+    <p>Total no of numerical features = {{dataset_stats['no_num_features']}}</p>
+    <p>
+      Total no of categorical features = {{dataset_stats['no_cat_features']}}
+    </p>
+  </div>
+</div>
+<br />
+<div class="table-frames">
+  <div>
+    <h3>Class statistics:</h3>
+    {{pivot_df | safe}}
+  </div>
+  <br />
+  <div>
+    <p style="margin-top: 55px"><b>Covariance</b> matrices:</p>
+    {% for class_label in class_stats_other %}
+    <div>
+      <p>For <b>{{class_label}}:</b></p>
+      {{class_stats_other[class_label]["covariance"] | safe}}
       <br />
-      <div>
-        <p style="margin-top: 55px"><b>Covariance</b> matrices:</p>
-        {% for class_label in class_stats_other %}
-        <div>
-          <p>For <b>{{class_label}}:</b></p>
-          {{class_stats_other[class_label]["covariance"] | safe}}
-          <br />
-        </div>
-        {% endfor %}
-      </div>
     </div>
+    {% endfor %}
+  </div>
+</div>
 
-    <br />
-    <!-- {% if plot_data %}
-        <img src="data:image/png;base64,{{ plot_data }}" alt="Multivariate Distribution" />
-    {% endif %} -->
-  </body>
-</html>
+<br />
+<!-- Add your home page content here -->
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends 'navigation.html' %} {% block content %}
+<h2>Upload CSV file</h2>
+
+<form method="POST" enctype="multipart/form-data" action="/stats">
+  <input type="file" name="dataset" accept=".csv" required />
+  <button type="submit">Upload</button>
+</form>
+<!-- Add your home page content here -->
+{% endblock %}

@@ -1,11 +1,17 @@
+import base64
 from flask import Flask, render_template, request, redirect, url_for, session
 from flask_session import Session
 import pandas as pd
 from scipy.stats import multivariate_normal
-
-# import matplotlib.pyplot as plt
+import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 from io import BytesIO
+from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import train_test_split
+import os
+
+matplotlib.use("Agg")
 
 
 app = Flask(__name__)
@@ -15,8 +21,8 @@ Session(app)
 
 
 @app.route("/")
-def index():
-    return render_template("home.html")
+def upload():
+    return render_template("upload.html")
 
 
 @app.route("/stats", methods=["GET", "POST"])
@@ -25,18 +31,25 @@ def stats():
     class_stats_other = {}
     if request.method == "POST":
         file = request.files["dataset"]
+        filename = file.filename
         df = pd.read_csv(BytesIO(file.read()))
+        session["filepath"] = filename
         session["dataset"] = df
+    elif request.method == "GET":
+        df = session["dataset"]
+        filename = session["filepath"]
 
     class_column = df.columns[0]
     numeric_columns = df.select_dtypes(include=["number"]).columns
     categorical_columns = df.select_dtypes(exclude=["number"]).columns
+    session["numeric_columns"] = numeric_columns
 
     dataset_stats = {
         "no_rows": len(df),
         "no_num_features": len(numeric_columns),
         "no_cat_features": len(categorical_columns) - 1,
     }
+
     unique_classes = df[df.columns[0]].unique()
     print(unique_classes)
     print(unique_classes)
@@ -92,7 +105,7 @@ def stats():
 
     return render_template(
         "stats.html",
-        filename=file.filename,
+        filename=filename,
         df_sample=df.head(10).to_html(
             index=False,
             justify="left",
@@ -141,6 +154,27 @@ def predict():
         feature_cols=df.select_dtypes(include=["number"]).columns.tolist(),
         pdf=pdf,
     )
+
+
+@app.route("/box_plot")
+def box_plot():
+    df = session["dataset"]
+    numeric_columns = session["numeric_columns"]
+    fig, axes = plt.subplots(
+        len(numeric_columns), 1, figsize=(10, 5 * len(numeric_columns))
+    )
+    for i, feature in enumerate(numeric_columns):
+        df.boxplot(column=feature, by=df.columns[0], grid=False, ax=axes[i])
+        axes[i].set_title(f"{feature}")
+
+    plt.tight_layout()
+    # Save the box plots to a BytesIO object
+    buffer = BytesIO()
+    plt.savefig(buffer, format="png")
+    buffer.seek(0)
+    plot_data_uri = base64.b64encode(buffer.read()).decode()
+    buffer.close()
+    return render_template("box_plot.html", plot_data_uri=plot_data_uri)
 
 
 if __name__ == "__main__":
