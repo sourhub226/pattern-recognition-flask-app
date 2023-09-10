@@ -11,6 +11,7 @@ from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import train_test_split
 import os
 
+# Set the backend for matplotlib to generate static images of plots without a GUI
 matplotlib.use("Agg")
 
 
@@ -42,7 +43,6 @@ def stats():
     class_column = df.columns[0]
     numeric_columns = df.select_dtypes(include=["number"]).columns
     categorical_columns = df.select_dtypes(exclude=["number"]).columns
-    session["numeric_columns"] = numeric_columns
 
     dataset_stats = {
         "no_rows": len(df),
@@ -51,8 +51,6 @@ def stats():
     }
 
     unique_classes = df[df.columns[0]].unique()
-    print(unique_classes)
-    print(unique_classes)
 
     for class_label in unique_classes:
         classviz_df = df[df[class_column] == class_label].select_dtypes(
@@ -121,10 +119,9 @@ def stats():
 
 @app.route("/predict", methods=["GET", "POST"])
 def predict():
-    pdf = {}
+    results = {}
     max_probability = -1
     predicted_class = None
-    data_point = None
     df = session["dataset"]
     unique_classes = df[df.columns[0]].unique()
     if request.method == "POST":
@@ -132,34 +129,39 @@ def predict():
         data_point = np.array([[float(x) for x in data_point.split(",")]])
         print(data_point)
 
-    for class_label in unique_classes:
-        classviz_df = df[df[df.columns[0]] == class_label].select_dtypes(
-            include=["number"]
-        )
-
-        probability = multivariate_normal(
-            mean=classviz_df.mean(), cov=classviz_df.cov()
-        ).pdf(data_point)
-        pdf[class_label] = {"probability": probability}
-        print(class_label)
-        print(probability)
-        if probability > max_probability:
-            max_probability = probability
-            predicted_class = class_label
-        print(f"Predicted class = {predicted_class}")
+        for class_label in unique_classes:
+            classviz_df = df[df[df.columns[0]] == class_label].select_dtypes(
+                include=["number"]
+            )
+            mvnd = multivariate_normal(mean=classviz_df.mean(), cov=classviz_df.cov())
+            probability = mvnd.pdf(x=data_point)
+            cumul_probab = multivariate_normal(
+                mean=classviz_df.mean(), cov=classviz_df.cov()
+            ).cdf(x=data_point)
+            results[class_label] = {
+                "probability": probability,
+                "cprobability": cumul_probab,
+            }
+            print(class_label)
+            print(probability)
+            if probability > max_probability:
+                max_probability = probability
+                predicted_class = class_label
+            print(f"Predicted class = {predicted_class}")
 
     return render_template(
         "predict.html",
         predicted_class=predicted_class,
         feature_cols=df.select_dtypes(include=["number"]).columns.tolist(),
-        pdf=pdf,
+        results=results,
+        unique_classes=unique_classes,
     )
 
 
 @app.route("/box_plot")
 def box_plot():
     df = session["dataset"]
-    numeric_columns = session["numeric_columns"]
+    numeric_columns = df.select_dtypes(include=["number"]).columns
     fig, axes = plt.subplots(
         len(numeric_columns), 1, figsize=(10, 5 * len(numeric_columns))
     )
@@ -167,6 +169,7 @@ def box_plot():
         df.boxplot(column=feature, by=df.columns[0], grid=False, ax=axes[i])
         axes[i].set_title(f"{feature}")
 
+    fig.suptitle("")
     plt.tight_layout()
     # Save the box plots to a BytesIO object
     buffer = BytesIO()

@@ -12,12 +12,14 @@
 <table border="1">
   <tr>
     <th>Class</th>
-    <th>Multivariate pdf</th>
+    <th>pdf</th>
+    <th>cdf</th>
   </tr>
-  {% for class_label in pdf %}
+  {% for class_label in unique_classes %}
   <tr>
     <td>{{class_label}}</td>
-    <td>{{pdf[class_label]["probability"] | safe}}</td>
+    <td>{{results[class_label]["probability"] | safe}}</td>
+    <td>{{results[class_label]["cprobability"] | safe}}</td>
   </tr>
 
   {% endfor %}
