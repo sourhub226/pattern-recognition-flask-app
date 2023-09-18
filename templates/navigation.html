@@ -4,7 +4,7 @@
     <title>Your Flask App</title>
     <link
       rel="stylesheet"
-      href="{{ url_for('static', filename='global styles.css') }}"
+      href="{{ url_for('static', filename='global_styles.css') }}"
     />
   </head>
   <body>
@@ -13,6 +13,7 @@
       <a href="{{ url_for('stats') }}">Statistics</a>
       <a href="{{ url_for('predict') }}">Predict</a>
       <a href="{{ url_for('box_plot') }}">Box Plot</a>
+      <a href="{{ url_for('confusion') }}">Confusion Matrix</a>
       <!-- Add more navigation links as needed -->
     </nav>
     <div class="container">{% block content %}{% endblock %}</div>

@@ -1,0 +1,49 @@
+{% extends 'navigation.html' %} {% block content %}
+
+<style>
+  .vertical {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+  }
+</style>
+<h2>Confusion Matrix</h2>
+
+<div>
+  <table border="1">
+    <tr>
+      <td></td>
+      <td></td>
+      <td colspan="100"><center>Predicted</center></td>
+    </tr>
+    <tr>
+      <th></th>
+      <th></th>
+      {% for feature_name in col_labels %}
+      <th>{{ feature_name }}</th>
+      {% endfor %}
+    </tr>
+    {% for index, (row_label, row_data) in row_labels %}
+    <tr>
+      {% if index==0 %}
+      <td rowspan="100">
+        <center><p class="vertical">Actual</p></center>
+      </td>
+      {% endif %}
+      <td><b>{{ row_label }}</b></td>
+      {% for value in row_data %}
+      <td>{{ value }}</td>
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </table>
+  <br />
+  <p>
+    Number of mislabeled points out of a total {{x_test.shape[0]}} points =
+    {{(y_test != y_pred).sum()}}
+  </p>
+  <p>Accuracy = {{accuracy}}</p>
+  <p>Precision = {{precision}}</p>
+  <p>Recall = {{recall}}</p>
+  <p>F score = {{f_score}}</p>
+</div>
+{% endblock %}

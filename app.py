@@ -7,9 +7,16 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 from io import BytesIO
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import (
+    confusion_matrix,
+    accuracy_score,
+    f1_score,
+    precision_score,
+    recall_score,
+)
 from sklearn.model_selection import train_test_split
-import os
+from sklearn.naive_bayes import GaussianNB
+
 
 # Set the backend for matplotlib to generate static images of plots without a GUI
 matplotlib.use("Agg")
@@ -167,7 +174,7 @@ def box_plot():
     )
     for i, feature in enumerate(numeric_columns):
         df.boxplot(column=feature, by=df.columns[0], grid=False, ax=axes[i])
-        axes[i].set_title(f"{feature}")
+        axes[i].set_title(feature)
 
     fig.suptitle("")
     plt.tight_layout()
@@ -178,6 +185,45 @@ def box_plot():
     plot_data_uri = base64.b64encode(buffer.read()).decode()
     buffer.close()
     return render_template("box_plot.html", plot_data_uri=plot_data_uri)
+
+
+@app.route("/confusion")
+def confusion():
+    df = session["dataset"]
+    unique_classes = df[df.columns[0]].unique()
+    # y = df.columns[0]
+    x = df.select_dtypes(include=["number"])
+    class_col = df.columns[0]
+    # x = df.drop(class_col, axis=1)
+    y = df[class_col]
+    x_train, x_test, y_train, y_test = train_test_split(x, y, random_state=1)
+
+    # Train a Gaussian Naive Bayes classifier
+    classifier = GaussianNB()
+    classifier.fit(x_train, y_train)
+
+    # Predict on the test set
+    y_pred = classifier.predict(x_test)
+    # print(
+    #     f"Number of mislabeled points out of a total {x_test.shape[0]} points : {(y_test != y_pred).sum()}"
+    # )
+
+    # Calculate the confusion matrix
+    confusion_data = confusion_matrix(y_test, y_pred)
+
+    return render_template(
+        "confusion_matrix.html",
+        x_test=x_test,
+        y_test=y_test,
+        y_pred=y_pred,
+        accuracy=np.round(accuracy_score(y_test, y_pred), 4),
+        precision=np.round(precision_score(y_test, y_pred, average=None), 4),
+        recall=np.round(recall_score(y_test, y_pred, average=None), 4),
+        f_score=np.round(f1_score(y_test, y_pred, average=None), 4),
+        confusion_data=confusion_data,
+        col_labels=unique_classes,
+        row_labels=list(enumerate(zip(unique_classes, confusion_data))),
+    )
 
 
 if __name__ == "__main__":
