@@ -60,3 +60,10 @@ a {
   color: #555;
   font-weight: 500;
 }
+
+input[type="checkbox"] {
+  margin: 7px 15px;
+  padding-top: 100px;
+  aspect-ratio: 1;
+  height: 20px;
+}

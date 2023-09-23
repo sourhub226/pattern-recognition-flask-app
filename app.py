@@ -30,13 +30,14 @@ Session(app)
 
 @app.route("/")
 def upload():
-    return render_template("upload.html")
+    return render_template(
+        "upload.html",
+        filename="",
+    )
 
 
-@app.route("/stats", methods=["GET", "POST"])
-def stats():
-    class_stats = []
-    class_stats_other = {}
+@app.route("/upload", methods=["POST", "GET"])
+def upload_file():
     if request.method == "POST":
         file = request.files["dataset"]
         filename = file.filename
@@ -46,7 +47,37 @@ def stats():
     elif request.method == "GET":
         df = session["dataset"]
         filename = session["filepath"]
+    class_column = df.columns[0]
+    numeric_columns = df.select_dtypes(include=["number"]).columns.tolist()
+    print(numeric_columns)
+    categorical_columns = (
+        df.drop(class_column, axis=1).select_dtypes(exclude=["number"]).columns.tolist()
+    )
+    print(categorical_columns)
+    return render_template(
+        "upload.html",
+        filename=filename,
+        class_column=class_column,
+        numeric_columns=numeric_columns,
+        categorical_columns=categorical_columns,
+    )
 
+
+@app.route("/stats", methods=["GET", "POST"])
+def stats():
+    df = session["dataset"]
+    filename = session["filepath"]
+    if request.method == "POST":
+        selected_features = request.form.getlist("selected_features")
+        session["selected_features"] = selected_features
+    elif request.method == "GET":
+        selected_features = session["selected_features"]
+    print(selected_features)
+    class_stats = []
+    class_stats_other = {}
+
+    df = df[selected_features]
+    session["dataset"] = df
     class_column = df.columns[0]
     numeric_columns = df.select_dtypes(include=["number"]).columns
     categorical_columns = df.select_dtypes(exclude=["number"]).columns
@@ -169,11 +200,16 @@ def predict():
 def box_plot():
     df = session["dataset"]
     numeric_columns = df.select_dtypes(include=["number"]).columns
+
     fig, axes = plt.subplots(
         len(numeric_columns), 1, figsize=(10, 5 * len(numeric_columns))
     )
+
     for i, feature in enumerate(numeric_columns):
+        if len(numeric_columns) == 1 and not isinstance(axes, list):
+            axes = [axes]
         df.boxplot(column=feature, by=df.columns[0], grid=False, ax=axes[i])
+        print(axes[i])
         axes[i].set_title(feature)
 
     fig.suptitle("")
@@ -193,6 +229,7 @@ def confusion():
     class_col = df.columns[0]
     unique_classes = df[df.columns[0]].unique()
     x = df.select_dtypes(include=["number"])
+    print(x)
     y = df[class_col]
     x_train, x_test, y_train, y_test = train_test_split(x, y, random_state=1)
 

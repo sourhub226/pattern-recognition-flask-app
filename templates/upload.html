@@ -1,9 +1,62 @@
 {% extends 'navigation.html' %} {% block content %}
+
+<style>
+  .labels {
+    display: flex;
+    align-items: center;
+  }
+  .none {
+    margin-left: 13px;
+  }
+</style>
+
 <h2>Upload CSV file</h2>
 
-<form method="POST" enctype="multipart/form-data" action="/stats">
+<form method="POST" enctype="multipart/form-data" action="/upload">
   <input type="file" name="dataset" accept=".csv" required />
   <button type="submit">Upload</button>
 </form>
+{% if filename!="" %}
+<!-- <h2>Dataset: {{filename}}</h2> -->
+<br />
+<h3>Choose columns from {{filename}}</h3>
+<form method="POST" action="/stats">
+  <!-- <input name="filename" value="{{ filename }}" /> -->
+  <p>Class Column:</p>
+  <div class="labels">
+    <input
+      type="checkbox"
+      name="selected_features"
+      value="{{class_column}}"
+      checked
+    />
+    {{class_column}}
+  </div>
+
+  <p>Numeric Columns:</p>
+  {% if numeric_columns|length == 0 %}
+  <p class="none">none</p>
+  {% endif %} {% for column in numeric_columns %}
+  <div class="labels">
+    <input type="checkbox" name="selected_features" value="{{ column }}" />
+    {{ column }}
+  </div>
+
+  {% endfor %}
+
+  <p>Categorical Columns:</p>
+  {% if categorical_columns|length == 0 %}
+  <p class="none">none</p>
+  {% endif %} {% for column in categorical_columns %}
+  <div class="labels">
+    <input type="checkbox" name="selected_features" value="{{ column }}" />{{
+    column }}
+  </div>
+
+  {% endfor %}
+  <br />
+  <button type="submit">Get stats</button>
+</form>
+{% endif %}
 <!-- Add your home page content here -->
 {% endblock %}
