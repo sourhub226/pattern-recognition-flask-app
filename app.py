@@ -134,7 +134,7 @@ def predict():
     if request.method == "POST":
         data_point = request.form["data_point"]
         data_point = np.array([[float(x) for x in data_point.split(",")]])
-        print(data_point)
+        # print(data_point)
 
         for class_label in unique_classes:
             classviz_df = df[df[df.columns[0]] == class_label].select_dtypes(
@@ -149,12 +149,12 @@ def predict():
                 "probability": probability,
                 "cprobability": cumul_probab,
             }
-            print(class_label)
-            print(probability)
+            # print(class_label)
+            # print(probability)
             if probability > max_probability:
                 max_probability = probability
                 predicted_class = class_label
-            print(f"Predicted class = {predicted_class}")
+            # print(f"Predicted class = {predicted_class}")
 
     return render_template(
         "predict.html",
@@ -190,25 +190,16 @@ def box_plot():
 @app.route("/confusion")
 def confusion():
     df = session["dataset"]
-    unique_classes = df[df.columns[0]].unique()
-    # y = df.columns[0]
-    x = df.select_dtypes(include=["number"])
     class_col = df.columns[0]
-    # x = df.drop(class_col, axis=1)
+    unique_classes = df[df.columns[0]].unique()
+    x = df.select_dtypes(include=["number"])
     y = df[class_col]
     x_train, x_test, y_train, y_test = train_test_split(x, y, random_state=1)
 
-    # Train a Gaussian Naive Bayes classifier
-    classifier = GaussianNB()
-    classifier.fit(x_train, y_train)
+    classifier = GaussianNB().fit(x_train, y_train)
 
-    # Predict on the test set
     y_pred = classifier.predict(x_test)
-    # print(
-    #     f"Number of mislabeled points out of a total {x_test.shape[0]} points : {(y_test != y_pred).sum()}"
-    # )
 
-    # Calculate the confusion matrix
     confusion_data = confusion_matrix(y_test, y_pred)
 
     return render_template(
@@ -226,5 +217,47 @@ def confusion():
     )
 
 
+@app.route("/bayesian")
+def bayesian():
+    df = session["dataset"]
+    class_col = df.columns[0]
+    total_count = len(df)
+    class_counts = df[class_col].value_counts()
+    class_probabilities = {}
+
+    # Get unique values of features dynamically
+    features = [col for col in df.columns if col != class_col]
+
+    for class_label, class_count in class_counts.items():
+        prior_probability = class_count / total_count
+
+        class_probabilities[class_label] = {}
+
+        # Calculate probabilities for each unique value of each feature
+        for feature in features:
+            unique_values = df[feature].unique()
+
+            for value in unique_values:
+                # Calculate P(feature | class)
+                feature_given_class = (
+                    df[(df[feature] == value) & (df[class_col] == class_label)].shape[0]
+                    / class_count
+                )
+
+                # Calculate P(class | feature)
+                posterior_probability = (feature_given_class * prior_probability) / (
+                    len(df[df[feature] == value]) / total_count
+                )
+
+                class_probabilities[class_label][
+                    (feature, value)
+                ] = posterior_probability
+
+    print(class_probabilities)
+    return render_template(
+        "bayesian.html", result=pd.DataFrame(class_probabilities).T.fillna(0).to_html()
+    )
+
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, threaded=True)
