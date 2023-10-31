@@ -16,6 +16,7 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import GaussianNB
+import seaborn as sns
 
 
 # Set the backend for matplotlib to generate static images of plots without a GUI
@@ -196,21 +197,26 @@ def predict():
     )
 
 
-@app.route("/box_plot")
-def box_plot():
+@app.route("/graph_plot")
+def graph_plot():
     df = session["dataset"]
     numeric_columns = df.select_dtypes(include=["number"]).columns
+    classes = df[df.columns[0]].unique()
 
     fig, axes = plt.subplots(
-        len(numeric_columns), 1, figsize=(10, 5 * len(numeric_columns))
+        len(numeric_columns),
+        len(classes) + 1,
+        figsize=(5 * (len(classes) + 1), 5 * len(numeric_columns)),
     )
 
     for i, feature in enumerate(numeric_columns):
         if len(numeric_columns) == 1 and not isinstance(axes, list):
             axes = [axes]
-        df.boxplot(column=feature, by=df.columns[0], grid=False, ax=axes[i])
-        print(axes[i])
-        axes[i].set_title(feature)
+        df.boxplot(column=feature, by=df.columns[0], grid=False, ax=axes[i][0])
+        axes[i][0].set_title(feature + " Boxplot")
+        for j, class_ in enumerate(classes):
+            sns.distplot(df[df[df.columns[0]] == class_][feature], ax=axes[i][j + 1])
+            axes[i][j + 1].set_title(feature + " Distribution for class " + str(class_))
 
     fig.suptitle("")
     plt.tight_layout()
@@ -220,7 +226,34 @@ def box_plot():
     buffer.seek(0)
     plot_data_uri = base64.b64encode(buffer.read()).decode()
     buffer.close()
-    return render_template("box_plot.html", plot_data_uri=plot_data_uri)
+    return render_template("graph_plot.html", plot_data_uri=plot_data_uri)
+
+
+# @app.route("/graph_plot")
+# def graph_plot():
+#     df = session["dataset"]
+#     numeric_columns = df.select_dtypes(include=["number"]).columns
+
+#     fig, axes = plt.subplots(
+#         len(numeric_columns), 1, figsize=(10, 5 * len(numeric_columns))
+#     )
+
+#     for i, feature in enumerate(numeric_columns):
+#         if len(numeric_columns) == 1 and not isinstance(axes, list):
+#             axes = [axes]
+#         df.boxplot(column=feature, by=df.columns[0], grid=False, ax=axes[i])
+#         print(axes[i])
+#         axes[i].set_title(feature)
+
+#     fig.suptitle("")
+#     plt.tight_layout()
+#     # Save the box plots to a BytesIO object
+#     buffer = BytesIO()
+#     plt.savefig(buffer, format="png")
+#     buffer.seek(0)
+#     plot_data_uri = base64.b64encode(buffer.read()).decode()
+#     buffer.close()
+#     return render_template("graph_plot.html", plot_data_uri=plot_data_uri)
 
 
 @app.route("/confusion")
@@ -231,7 +264,9 @@ def confusion():
     x = df.select_dtypes(include=["number"])
     print(x)
     y = df[class_col]
-    x_train, x_test, y_train, y_test = train_test_split(x, y, random_state=1)
+    x_train, x_test, y_train, y_test = train_test_split(
+        x, y, test_size=0.7, random_state=1
+    )
 
     classifier = GaussianNB().fit(x_train, y_train)
 
@@ -261,6 +296,7 @@ def bayesian():
     total_count = len(df)
     class_counts = df[class_col].value_counts()
     class_probabilities = {}
+    df = df.select_dtypes(exclude=["number"])
 
     # Get unique values of features dynamically
     features = [col for col in df.columns if col != class_col]
